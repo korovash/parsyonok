@@ -128,8 +128,8 @@ def copy_tag():
 
 def main():
     # Получение директории Документы
-    #documents_folder = get_documents_folder()
-    documents_folder = r'C:\Users\Korovan\Documents'
+    documents_folder = get_documents_folder()
+    #documents_folder = r'C:\Users\Korovan\Documents'
     with open(documents_folder + '\patterns.csv', 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
         for row in csv_reader:
