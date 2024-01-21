@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск известных проблем в лог файлах</title>
+    <style>
+        body {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: 'Arial', sans-serif;
+        }
+
+        h1 {
+            color: #3498db;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #34495e;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #2980b9;
+            color: #ecf0f1;
+        }
+
+        tbody tr:hover {
+            background-color: #34495e;
+            cursor: pointer;
+        }
+
+        #summaryText {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 5px;
+            padding: 8px;
+            background-color: #3498db;
+            color: #ecf0f1;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #fileLabel {
+            margin-top: 10px;
+        }
+        
+        tbody tr:hover {
+            background-color: #34495e;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        tbody tr.selected {
+            background-color: #4e3588;
+        }
+    </style>
+</head>
+<body>
+    <h1>Поиск известных проблем в лог файлах</h1>
+
+    <button onclick="reloadData()">Перечитать лог</button>
+
+    <table id="resultTable">
+        <thead>
+            <tr>
+                <th>Совпадения</th>
+                <th>Решения</th>
+                <th>Тег</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- Текстовое поле для формирования итоговых результатов -->
+    <textarea id="summaryText" rows="4" placeholder="Добавляйте данные в эту форму с помощью кнопок добавления, предварительно, выделив нужную строку"></textarea>
+
+    <!-- Кнопки -->
+    <button onclick="addMatch()">Добавить совпадение</button>
+    <button onclick="addToSummary()">Добавить в решение</button>
+    <button onclick="addRecommendationBBMO()">Добавить рекомендацию ББМО</button>
+    <button onclick="addRecommendationRestart()">Добавить рекомендацию перезапуска</button>
+    <button onclick="copyTag()">Копировать ТЕГ</button>
+    <button onclick="copySolution()">Копировать решение</button>
+
+    <div id="fileLabel"></div>
+
+    <script>
+        function reloadData() {
+            // Очищаем текущие данные
+            document.getElementById('fileLabel').innerText = "";
+            var tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = "";
+            document.getElementById('summaryText').value = "";
+
+            // Запрашиваем новые данные
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('fileLabel').innerText = "Последний прочитанный файл: " + data.file_label;
+
+                    var tableBody = document.getElementById('tableBody');
+                    tableBody.innerHTML = "";
+
+                    data.tree_data.forEach(function (row) {
+                        var newRow = tableBody.insertRow();
+                        newRow.insertCell(0).innerHTML = highlightMessage(row[0]); // Совпадения
+                        newRow.insertCell(1).innerText = row[1]; // Решения
+                        newRow.insertCell(2).innerText = row[2]; // Тег
+                            // Добавляем обработчик клика для выделения строки
+                            newRow.onclick = function () {
+                                toggleRowSelection(this);
+                            };
+                        });
+                    });
+        }
+
+        function toggleRowSelection(row) {
+            // Убираем выделение со всех строк
+            for (var j = 0; j < tableBody.rows.length; j++) {
+                tableBody.rows[j].classList.remove('selected');
+            }
+            // Выделяем текущую строку
+            row.classList.toggle('selected');
+        }
+
+        function addMatch() {
+            // Ваш код для добавления совпадения
+            var selectedRow = getSelectedRow();
+            if (selectedRow) {
+                var selectedText = selectedRow.cells[0].innerText;
+                document.getElementById('summaryText').value += selectedText + ' ';
+            }
+        }
+
+        function addToSummary() {
+            // Ваш код для добавления в решение
+            var selectedRow = getSelectedRow();
+            if (selectedRow) {
+                var selectedSolution = selectedRow.cells[1].innerText;
+                document.getElementById('summaryText').value += selectedSolution + ' ';
+            }
+        }
+
+        function addRecommendationBBMO() {
+            // Ваш код для добавления рекомендации ББМО
+            document.getElementById('summaryText').value += 'Необходимо подгрузить документы в ББМО вручную. ';
+        }
+
+        function addRecommendationRestart() {
+            // Ваш код для добавления рекомендации перезапуска
+            document.getElementById('summaryText').value += 'Необходимо перелогиниться в приложение (в одной вкладке браузера), очистив куки и повторить операцию. ';
+        }
+
+        function copyTag() {
+            // Ваш код для копирования ТЕГА
+            var selectedRow = getSelectedRow();
+            if (selectedRow) {
+                var selectedTag = selectedRow.cells[2].innerText;
+                navigator.clipboard.writeText(selectedTag);
+            }
+        }
+
+        function copySolution() {
+            // Ваш код для копирования решения
+            var summaryText = document.getElementById('summaryText');
+            summaryText.select();
+            document.execCommand('copy');
+        }
+
+        function getSelectedRow() {
+            var table = document.getElementById('resultTable');
+            for (var i = 0; i < table.rows.length; i++) {
+                if (table.rows[i].classList.contains('selected')) {
+                    return table.rows[i];
+                }
+            }
+            return null;
+        }
+
+
+        function highlightMessage(message) {
+            if (message.includes('ERROR')) {
+                return '<span style="color: red;">' + message + '</span>';
+            } else if (message.includes('INFO')) {
+                return '<span style="color: #00FF00;">' + message + '</span>';
+            } else if (message.includes('WARN')) {
+                return '<span style="color: yellow;">' + message + '</span>';
+            } else {
+                return message;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Первичное обновление данных
+            reloadData();
+        });
+    </script>
+</body>
+</html>
