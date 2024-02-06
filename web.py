@@ -1,3 +1,4 @@
+import json
 from flask import Flask, render_template, jsonify
 import re
 import csv
@@ -6,6 +7,7 @@ import winreg
 import glob
 
 app = Flask(__name__)
+accOpened = False
 
 def get_documents_folder():
     key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
@@ -32,20 +34,45 @@ def get_downloads_folder():
 def parse_file(file_path, patterns):
     matched_data = []
     with open(file_path, 'r', encoding='utf-8') as file:
-        content = file.read()
+        lines = file.readlines()
         for pattern, text, tag in patterns:
-            matches = re.finditer(pattern, content)
-            for match in matches:
-                matched_text = match.group()
-                full_line_match = content[content.rfind('\n', 0, match.start()) + 1:content.find('\n', match.start())]
-                matched_data.append((full_line_match, text, tag))
+            for line in lines:
+                matches = re.finditer(pattern, line)
+                for match in matches:
+                    matched_text = match.group()
+                    full_line_match = line.rstrip('\n')
+                    matched_data.append((full_line_match, text, tag))
     return matched_data
 
 def update_tree(file_path, patterns):
+    global accOpened  # Добавляем глобальную переменную
     matched_data = parse_file(file_path, patterns)
     # Сортировка данных по времени (первому столбцу)
     matched_data.sort(key=lambda x: x[0])
-    return matched_data
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+        # Проверяем наличие строки "Счёт открыт" во всем содержимом лог-файла
+        if "Счёт открыт" in content:
+            accOpened = True
+    return [{'Совпадения': item[0], 'Решения': item[1], 'Тег': item[2], 'rqUid': extract_rqUid(item[0])} for item in matched_data]
+
+def extract_rqUid(query):
+    try:
+        # Используем регулярное выражение для поиска значений rquid и rqTm в строке
+        match = re.search(r'"rqUid":"([^"]+)","rqTm":"([^"]+)"', query)
+        if match:
+            rqUid = match.group(1)
+            rqTm = match.group(2)
+            return f'rqUid: {rqUid}, rqTm: {rqTm}'
+        else:
+            return ''
+    except Exception as e:
+        return f'Произошла ошибка при извлечении rqUid и rqTm: {e}'
+
+@app.route('/accOpened')
+def get_acc_opened():
+    return jsonify({'accOpened': accOpened})
 
 @app.route('/')
 def index():
@@ -66,10 +93,22 @@ def get_data():
     if downloads_folder:
         list_of_files = glob.glob(downloads_folder + '/*.txt')
         latest_file = max(list_of_files, key=os.path.getctime)
+        tree_data = update_tree(latest_file, patterns)
+
+        # Обновленный блок для добавления rqUid в данные
+        for row in tree_data:
+            query = row['Совпадения']
+            rqUid = extract_rqUid(query)
+            row['rqUid'] = rqUid
+
+        # Конвертируем кортежи в списки для JSON-сериализации
+        tree_data = [dict(row) for row in tree_data]
+
         data = {
             'file_label': os.path.basename(latest_file),
-            'tree_data': update_tree(latest_file, patterns)
+            'tree_data': tree_data
         }
+        
         return jsonify(data)
     else:
         return jsonify({'error': 'Не удалось получить путь к директории загрузок.'})

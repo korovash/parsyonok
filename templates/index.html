@@ -82,6 +82,7 @@
         <thead>
             <tr>
                 <th>Совпадения</th>
+                <th>rqUid</th>
                 <th>Решения</th>
                 <th>Тег</th>
             </tr>
@@ -89,21 +90,41 @@
         <tbody id="tableBody"></tbody>
     </table>
 
-    <!-- Текстовое поле для формирования итоговых результатов -->
-    <textarea id="summaryText" rows="4" placeholder="Добавляйте данные в эту форму с помощью кнопок добавления, предварительно, выделив нужную строку"></textarea>
-
     <!-- Кнопки -->
-    <button onclick="addMatch()">Добавить совпадение</button>
-    <button onclick="addToSummary()">Добавить в решение</button>
-    <button onclick="addRecommendationBBMO()">Добавить рекомендацию ББМО</button>
-    <button onclick="addRecommendationRestart()">Добавить рекомендацию перезапуска</button>
-    <button onclick="copyTag()">Копировать ТЕГ</button>
-    <button onclick="copySolution()">Копировать решение</button>
+    <button onclick="addMatch()">
+        ➕ Добавить совпадение
+    </button>
+    
+    <button onclick="addToSummary()">
+        ➕ Добавить решение
+    </button>
+    
+    <button onclick="addRqUid()">
+        ➕ Добавить rqUid
+    </button>
+    
+    <button onclick="addRecommendationBBMO()">
+        ➕ Добавить рекомендацию ББМО
+    </button>
+    
+    <button onclick="addRecommendationRestart()">
+        ➕ Добавить рекомендацию перезапуска
+    </button>
+    
+    <button onclick="copyTag()">
+        📋 Копировать ТЕГ
+    </button>
+    <button onclick="copySolution()">
+        📋 Копировать итог
+    </button>
 
     <div id="fileLabel"></div>
 
+    <!-- Текстовое поле для формирования итоговых результатов -->
+    <textarea id="summaryText" rows="4" placeholder="Добавляйте данные в эту форму с помощью кнопок добавления, предварительно, выделив нужную строку"></textarea>
+
     <script>
-        function reloadData() {
+       function reloadData() {
             // Очищаем текущие данные
             document.getElementById('fileLabel').innerText = "";
             var tableBody = document.getElementById('tableBody');
@@ -121,25 +142,46 @@
 
                     data.tree_data.forEach(function (row) {
                         var newRow = tableBody.insertRow();
-                        newRow.insertCell(0).innerHTML = highlightMessage(row[0]); // Совпадения
-                        newRow.insertCell(1).innerText = row[1]; // Решения
-                        newRow.insertCell(2).innerText = row[2]; // Тег
-                            // Добавляем обработчик клика для выделения строки
-                            newRow.onclick = function () {
-                                toggleRowSelection(this);
-                            };
-                        });
+                        var matchCell = newRow.insertCell(0);
+                        matchCell.innerHTML = highlightMessage(row.Совпадения);
+                        matchCell.title = row.Совпадения; // Добавляем атрибут title
+
+                        newRow.insertCell(1).innerText = row.rqUid; // rqUid
+                        newRow.insertCell(2).innerText = row.Решения; // Решения
+                        newRow.insertCell(3).innerText = row.Тег; // Тег
+
+                        newRow.onclick = function () {
+                            toggleRowSelection(this);
+                        };
                     });
+
+                    // Запрашиваем значение accOpened
+                    fetch('/accOpened')
+                        .then(response => response.json())
+                        .then(accOpenedData => {
+                            // Проверяем переменную accOpened и обновляем сообщение
+                            if (accOpenedData.accOpened) {
+                                addTextToSummary("Счёт открыт. ");
+                            }
+                        });
+                });
+        }
+
+        function addTextToSummary(text) {
+            var summaryText = document.getElementById('summaryText');
+            summaryText.focus(); // Устанавливаем фокус на textarea
+            document.execCommand('insertText', false, text);
         }
 
         function toggleRowSelection(row) {
-            // Убираем выделение со всех строк
-            for (var j = 0; j < tableBody.rows.length; j++) {
-                tableBody.rows[j].classList.remove('selected');
-            }
-            // Выделяем текущую строку
-            row.classList.toggle('selected');
+        var table = document.getElementById('resultTable');
+        for (var i = 0; i < table.rows.length; i++) {
+            // Снимаем выделение с других строк
+            table.rows[i].classList.remove('selected');
         }
+        // Выделяем текущую строку
+        row.classList.add('selected');
+    }
 
         function addMatch() {
             // Ваш код для добавления совпадения
@@ -150,12 +192,20 @@
             }
         }
 
+        function addRqUid() {
+            var selectedRow = getSelectedRow();
+            if (selectedRow) {
+                var selectedRqUid = selectedRow.cells[1].innerText; // Предполагаем, что rqUid находится во второй ячейке
+                document.getElementById('summaryText').value += selectedRqUid + ' ';
+            }
+        }
+
         function addToSummary() {
             // Ваш код для добавления в решение
             var selectedRow = getSelectedRow();
             if (selectedRow) {
-                var selectedSolution = selectedRow.cells[1].innerText;
-                document.getElementById('summaryText').value += selectedSolution + ' ';
+                var selectedSolution = selectedRow.cells[2].innerText;
+                addTextToSummary(selectedSolution + ' ');
             }
         }
 
@@ -173,7 +223,7 @@
             // Ваш код для копирования ТЕГА
             var selectedRow = getSelectedRow();
             if (selectedRow) {
-                var selectedTag = selectedRow.cells[2].innerText;
+                var selectedTag = selectedRow.cells[3].innerText;
                 navigator.clipboard.writeText(selectedTag);
             }
         }
