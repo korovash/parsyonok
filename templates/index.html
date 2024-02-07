@@ -55,7 +55,7 @@
         }
 
         button:hover {
-            background-color: #2980b9;
+            background-color: #16364b;
         }
 
         #fileLabel {
@@ -69,14 +69,43 @@
         }
 
         tbody tr.selected {
-            background-color: #4e3588;
+            background-color: #a76ee7;
+        }
+		
+        td:first-child {
+            max-width: 255ch;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;
+            white-space: nowrap;
+        }
+        
+        .spinner {
+            margin: 100px auto;
+            width: 50px;
+            height: 40px;
+            text-align: center;
+            font-size: 10px;
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <h1>Поиск известных проблем в лог файлах</h1>
 
-    <button onclick="reloadData()">Перечитать лог</button>
+    <button onclick="reloadData()">
+        🔄 Перечитать лог
+    </button>
+    <div class="spinner" id="loader"></div>
+
+    <div id="fileLabel"></div>
 
     <table id="resultTable">
         <thead>
@@ -114,11 +143,14 @@
     <button onclick="copyTag()">
         📋 Копировать ТЕГ
     </button>
+    
     <button onclick="copySolution()">
         📋 Копировать итог
     </button>
 
-    <div id="fileLabel"></div>
+    <button onclick="reloadData()">
+        🔄 Перечитать лог
+    </button>
 
     <!-- Текстовое поле для формирования итоговых результатов -->
     <textarea id="summaryText" rows="4" placeholder="Добавляйте данные в эту форму с помощью кнопок добавления, предварительно, выделив нужную строку"></textarea>
@@ -130,6 +162,9 @@
             var tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = "";
             document.getElementById('summaryText').value = "";
+
+            // Показываем индикатор загрузки
+            document.getElementById('loader').style.display = 'block';
 
             // Запрашиваем новые данные
             fetch('/data')
@@ -154,6 +189,9 @@
                             toggleRowSelection(this);
                         };
                     });
+
+                    // Скрываем индикатор загрузки после получения данных
+                    document.getElementById('loader').style.display = 'none';
 
                     // Запрашиваем значение accOpened
                     fetch('/accOpened')

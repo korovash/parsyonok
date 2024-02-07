@@ -7,7 +7,7 @@ import winreg
 import glob
 
 app = Flask(__name__)
-accOpened = False
+
 
 def get_documents_folder():
     key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
@@ -45,7 +45,10 @@ def parse_file(file_path, patterns):
     return matched_data
 
 def update_tree(file_path, patterns):
-    global accOpened  # Добавляем глобальную переменную
+      # Добавляем глобальные переменные для проверки некоторых триггеров
+    global accOpened
+    accOpened = False
+
     matched_data = parse_file(file_path, patterns)
     # Сортировка данных по времени (первому столбцу)
     matched_data.sort(key=lambda x: x[0])
@@ -55,25 +58,29 @@ def update_tree(file_path, patterns):
         # Проверяем наличие строки "Счёт открыт" во всем содержимом лог-файла
         if "Счёт открыт" in content:
             accOpened = True
-    return [{'Совпадения': item[0], 'Решения': item[1], 'Тег': item[2], 'rqUid': extract_rqUid(item[0])} for item in matched_data]
+
+    return [{'Совпадения': item[0], 'Решения': item[1], 'Тег': item[2], 'rqUID': extract_rqUid(item[0])} for item in matched_data]
 
 def extract_rqUid(query):
     try:
         # Используем регулярное выражение для поиска значений rquid и rqTm в строке
-        match = re.search(r'"rqUid":"([^"]+)","rqTm":"([^"]+)"', query)
+        # "rqUID":"3687ebac8a004a73bb0cccb1dea26517","operUID":"3687ebac8a004a73bb0cccb1dea26517","rqTm":"2024-02-05T16:25:41"
+        match = re.search(r'"rqUID":"([^"]+)","operUID":"[^"]+","rqTm":"([^"]+)"', query)
         if match:
-            rqUid = match.group(1)
+            rqUID = match.group(1)
             rqTm = match.group(2)
-            return f'rqUid: {rqUid}, rqTm: {rqTm}'
+            return f'rqUID: {rqUID}, rqTm: {rqTm}'
         else:
             return ''
     except Exception as e:
-        return f'Произошла ошибка при извлечении rqUid и rqTm: {e}'
+        return f'Произошла ошибка при извлечении rqUID и rqTm: {e}'
 
+# Маршруты для проверки некоторых триггеров (открытия счета и т.д.)
 @app.route('/accOpened')
 def get_acc_opened():
     return jsonify({'accOpened': accOpened})
 
+# Базовый маршрут
 @app.route('/')
 def index():
     return render_template('index.html')
