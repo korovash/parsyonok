@@ -1,13 +1,12 @@
 import json
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, g
 import re
 import csv
 import os
 import winreg
 import glob
 
-app = Flask(__name__)
-
+app = Flask(__name__, template_folder='templates')
 
 def get_documents_folder():
     key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
@@ -41,25 +40,46 @@ def parse_file(file_path, patterns):
                 for match in matches:
                     matched_text = match.group()
                     full_line_match = line.rstrip('\n')
-                    matched_data.append((full_line_match, text, tag))
+                    matched_data.append({'Совпадения': full_line_match, 'Решения': text, 'Тег': tag})
     return matched_data
 
 def update_tree(file_path, patterns):
-      # Добавляем глобальные переменные для проверки некоторых триггеров
     global accOpened
-    accOpened = False
+    global session_ids
 
+    accOpened = False
+    
     matched_data = parse_file(file_path, patterns)
-    # Сортировка данных по времени (первому столбцу)
-    matched_data.sort(key=lambda x: x[0])
+    matched_data.sort(key=lambda x: x['Совпадения'])
 
     with open(file_path, 'r', encoding='utf-8') as file:
         content = file.read()
-        # Проверяем наличие строки "Счёт открыт" во всем содержимом лог-файла
         if "Счёт открыт" in content:
             accOpened = True
 
-    return [{'Совпадения': item[0], 'Решения': item[1], 'Тег': item[2], 'rqUID': extract_rqUid(item[0])} for item in matched_data]
+    session_ids = []
+    for item in matched_data:
+        query = item['Совпадения']
+        rqUid = extract_rqUid(query)
+        item['rqUid'] = rqUid
+        session_id_match = re.search(r'sessionId=([^;]+);', query)
+        if session_id_match:
+            session_id = session_id_match.group(1)
+            session_ids.append(f'"{session_id}"')
+
+    return matched_data
+
+
+def extract_sessionId(query):
+    try:
+        match = re.search(r'sessionId=([^;]+)', query)
+        if match:
+            sessionId = match.group(1)
+            return f'{sessionId}'
+        else:
+            return ''
+    except Exception as e:
+        return f'Произошла ошибка при извлечении sessionId: {e}'
 
 def extract_rqUid(query):
     try:
@@ -84,6 +104,18 @@ def get_acc_opened():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+# Маршрут для страницы "Масс операции"
+@app.route('/mass_operations')
+def mass_operations():
+    return render_template('mass_operations.html')
+
+# Маршрут для получения данных о sessionId
+@app.route('/get_session_ids')
+def get_session_ids():
+    session_ids = g.get('session_ids', [])
+    grouped_session_ids = [session_ids[i:i + 50] for i in range(0, len(session_ids), 50)]
+    return jsonify({'grouped_session_ids': grouped_session_ids})
 
 @app.route('/data')
 def get_data():

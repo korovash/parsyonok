@@ -73,7 +73,7 @@
         }
 		
         td:first-child {
-            max-width: 255ch;
+            max-width: 100ch;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
@@ -95,10 +95,34 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .navbar {
+            overflow: hidden;
+            background-color: #333;
+        }
+
+        .navbar a {
+            float: left;
+            display: block;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
     </style>
 </head>
 <body>
     <h1>Поиск известных проблем в лог файлах</h1>
+
+    <div class="navbar">
+        <a href="/">Главная</a>
+        <a href="/mass_operations">Масс операции</a>
+    </div>
 
     <button onclick="reloadData()">
         🔄 Перечитать лог
@@ -114,6 +138,7 @@
                 <th>rqUid</th>
                 <th>Решения</th>
                 <th>Тег</th>
+                <th>sessionId</th>
             </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -179,11 +204,12 @@
                         var newRow = tableBody.insertRow();
                         var matchCell = newRow.insertCell(0);
                         matchCell.innerHTML = highlightMessage(row.Совпадения);
-                        matchCell.title = row.Совпадения; // Добавляем атрибут title
+                        matchCell.title = row.Совпадения;
 
-                        newRow.insertCell(1).innerText = row.rqUid; // rqUid
-                        newRow.insertCell(2).innerText = row.Решения; // Решения
-                        newRow.insertCell(3).innerText = row.Тег; // Тег
+                        newRow.insertCell(1).innerText = row.rqUid;
+                        newRow.insertCell(2).innerText = row.Решения;
+                        newRow.insertCell(3).innerText = row.Тег;
+                        newRow.insertCell(4).innerText = row.sessionId; // Добавляем ячейку для sessionId
 
                         newRow.onclick = function () {
                             toggleRowSelection(this);
