@@ -43,7 +43,7 @@ def parse_file(file_path, patterns):
                     if rqUID and rqTm:
                         matched_data.append((line, text, f'rqUID: {rqUID}, rqTm: {rqTm}', tag))
                     else:
-                        matched_data.append((line, text, '', tag))  # Append with empty values
+                        matched_data.append((line, text, '', tag))
     return matched_data
 
 
@@ -54,7 +54,7 @@ def copy_solution():
         return
     selected_data = tree.item(selected_item, 'values')
     root.clipboard_clear()
-    root.clipboard_append(selected_data[1])  # Используем колонку "Решение"
+    root.clipboard_append(selected_data[1])
     root.update()
 
 def add_to_summary():
@@ -64,7 +64,7 @@ def add_to_summary():
         return
     selected_data = tree.item(selected_item, 'values')
     summary_text.insert('end', selected_data[1] + ' ')
-    summary_text.see('end')  # Прокрутка вниз для отображения последнего добавленного текста
+    summary_text.see('end')
 
 def add_recommendation_bbmo():
     summary_text.insert(tk.END, 'Необходимо подгрузить документы в ББМО вручную. ')
@@ -96,7 +96,7 @@ def reload_log():
         match = re.search(r'Счёт открыт', content)
         if match:
             summary_text.insert('end', "Счёт открыт. ")
-            summary_text.see('end')  # Прокрутка вниз для отображения последнего добавленного текста
+            summary_text.see('end')
 
 def update_tree(file_path):
     tree.delete(*tree.get_children())
@@ -123,7 +123,7 @@ def copy_tag():
         return
     selected_data = tree.item(selected_item, 'values')
     root.clipboard_clear()
-    root.clipboard_append(selected_data[2])  # Используем колонку "Тег"
+    root.clipboard_append(selected_data[2])
     root.update()
 
 def extract_rqUID_and_rqTm(log_message):
@@ -134,7 +134,7 @@ def extract_rqUID_and_rqTm(log_message):
             log_data = json.loads(json_data)
             rqUID = log_data.get('rqUID', '')
             rqTm = log_data.get('rqTm', '')
-            return rqUID, rqTm  # Return as a tuple
+            return rqUID, rqTm
     except (ValueError, AttributeError):
         return '', ''
 
@@ -188,12 +188,12 @@ def main():
     tree.heading('#3', text='rqUID_Tm', anchor='w')
     tree.heading('#4', text='Тег', anchor='w')
     tree.column('#1', stretch=True, minwidth=0, width=window_width // 3)
-    tree.column('#2', stretch=True, minwidth=0, width=window_width // 3)  # Растягиваем по горизонтали
-    tree.column('#3', stretch=True, minwidth=0, width=window_width // 6)  # Растягиваем по горизонтали
-    tree.column('#4', stretch=False, minwidth=0, width=window_width // 6)  # Растягиваем по горизонтали
+    tree.column('#2', stretch=True, minwidth=0, width=window_width // 3)
+    tree.column('#3', stretch=True, minwidth=0, width=window_width // 6)
+    tree.column('#4', stretch=False, minwidth=0, width=window_width // 6)
     tree['show'] = 'headings'
     # Включение сортировки по первому столбцу
-    tree.pack(fill='both', expand=True)  # Растягиваем tree по горизонтали и вертикали
+    tree.pack(fill='both', expand=True)
 
     # Фрейм для кнопок слева от фрейма "Итоговое решение"
     left_button_frame = tk.Frame(root)
@@ -226,7 +226,7 @@ def main():
 
     # Создание текстового поля для итогового решения
     global summary_text
-    summary_text = tk.Text(summary_frame, height=10, width=50, wrap=tk.WORD)  # Перенос по словам
+    summary_text = tk.Text(summary_frame, height=10, width=50, wrap=tk.WORD)
     summary_text.pack(side=tk.LEFT)
 
     # Пометка для последнего прочитанного файла
