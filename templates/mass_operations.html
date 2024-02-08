@@ -106,14 +106,15 @@
         }
 
         function extractSessionIds(content) {
-            var sessionIdRegex = /\bsessionId\s*=\s*([^;\n]+)/g;
+            var sessionIdRegex = /\bsessionId=([^;]+)/g;
             var matches = content.match(sessionIdRegex);
             return matches ? matches.map(match => match.split('=')[1].trim()) : [];
         }
 
         function displaySessionIds(sessionIds) {
             var sessionIdsList = document.getElementById('sessionIdsList');
-            sessionIds.forEach(function (sessionId) {
+            uniquesessionIds = new Set(sessionIds);
+            uniquesessionIds.forEach(function (sessionId) {
                 var sessionIdElement = document.createElement('div');
                 sessionIdElement.innerText = sessionId;
                 sessionIdsList.appendChild(sessionIdElement);
@@ -121,7 +122,8 @@
         }
         
         function createBlockHtml(sessionIds) {
-            return `<div class="sessionId-block">AND (${sessionIds.map(id => `"${id}"`).join(' OR ')})</div>`;
+            uniquesessionIds = new Set(sessionIds);
+            return `<div class="sessionId-block">AND (${uniquesessionIds.map(id => `"${id}"`).join(' OR ')})</div>`;
         }
 
         // Функция для обновления блоков на странице

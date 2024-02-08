@@ -5,19 +5,9 @@ import csv
 import os
 import winreg
 import glob
+from pathlib import Path
 
-app = Flask(__name__, template_folder='templates')
-
-def get_documents_folder():
-    key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
-    value_name = "{F42EE2D3-909F-4907-8871-4C22FC0BF756}"
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
-            downloads_path, _ = winreg.QueryValueEx(key, value_name)
-            return downloads_path
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
+app = Flask(__name__)
 
 def get_downloads_folder():
     key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
@@ -62,17 +52,17 @@ def update_tree(file_path, patterns):
         query = item['Совпадения']
         rqUid = extract_rqUid(query)
         item['rqUid'] = rqUid
-        session_id_match = re.search(r'sessionId=([^;]+);', query)
+        item['sessionId'] = extract_sessionId(query)
+        session_id_match = re.search(r'sessionId=([^;|,]+);\s', query)
         if session_id_match:
             session_id = session_id_match.group(1)
             session_ids.append(f'"{session_id}"')
-
+    
     return matched_data
-
 
 def extract_sessionId(query):
     try:
-        match = re.search(r'sessionId=([^;]+)', query)
+        match = re.search(r'sessionId=([^;|,]+);\s', query)
         if match:
             sessionId = match.group(1)
             return f'{sessionId}'
@@ -120,37 +110,40 @@ def get_session_ids():
 @app.route('/data')
 def get_data():
     patterns = []
-    #documents_folder = get_documents_folder()
-    documents_folder = r'C:\Users\Korovan\Documents'
-    with open(documents_folder + '\patterns.csv', 'r', encoding='utf-8') as csv_file:
+
+    with open('patterns.csv', 'r', encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file)
         for row in csv_reader:
             patterns.append((row[0], row[1], row[2]))
 
-    downloads_folder = get_downloads_folder()
-
-    if downloads_folder:
+    try:
+        downloads_folder = get_downloads_folder()
         list_of_files = glob.glob(downloads_folder + '/*.txt')
         latest_file = max(list_of_files, key=os.path.getctime)
-        tree_data = update_tree(latest_file, patterns)
+    except:
+        downloads_folder = str(Path.home() / "Downloads")
+        list_of_files = glob.glob(downloads_folder + '/*.txt')
+        latest_file = max(list_of_files, key=os.path.getctime)
 
-        # Обновленный блок для добавления rqUid в данные
-        for row in tree_data:
-            query = row['Совпадения']
-            rqUid = extract_rqUid(query)
-            row['rqUid'] = rqUid
+    list_of_files = glob.glob(downloads_folder + '/*.txt')
+    latest_file = max(list_of_files, key=os.path.getctime)
+    tree_data = update_tree(latest_file, patterns)
 
-        # Конвертируем кортежи в списки для JSON-сериализации
-        tree_data = [dict(row) for row in tree_data]
+    # Обновленный блок для добавления rqUid в данные
+    for row in tree_data:
+        query = row['Совпадения']
+        rqUid = extract_rqUid(query)
+        row['rqUid'] = rqUid
 
-        data = {
-            'file_label': os.path.basename(latest_file),
-            'tree_data': tree_data
-        }
-        
-        return jsonify(data)
-    else:
-        return jsonify({'error': 'Не удалось получить путь к директории загрузок.'})
+    # Конвертируем кортежи в списки для JSON-сериализации
+    tree_data = [dict(row) for row in tree_data]
+
+    data = {
+        'file_label': os.path.basename(latest_file),
+        'tree_data': tree_data
+    }
+    
+    return jsonify(data)
 
 if __name__ == '__main__':
     app.run(debug=True)
