@@ -11,7 +11,7 @@
 Директория Downloads, Documents вычисляется автоматически, исходя из значений реестра Windows (сделано для обходя проблем с путями windows в среде ВАРМ, т.к. там эти директории перенаправлены на сетевой ресурс)
 Выполнить скрипт можно примерно следующей командой в cmd или powershell:
 
-    cd \\werde267.ca.sbrf.ru\VOL1_FolderRedirection\STD-VARM\21479579_OMEGA\Documents\
+    cd \\werde267.ca.sbrf.ru\VOL1_FolderRedirection\STD-VARM\21479579_OMEGA\Documents\parsyonok
     python py4.py
 
 Запуск сразу же проверит последний файл лога из Downloads и выдаст результаты на форму, если будут совпадения. Если в файле лога есть сообщение "счёт открыт", то это сразу добавится в итоговое решение. Текстбокс итогово решения можно редактировать и руками, кнопки существуют для ускорения процесса обработки.
@@ -56,7 +56,7 @@ Prereq:
     - идем сначала сюда - https://sberosc.ca.sbrf.ru/dashboard/profile/
     - там генерируем токен и сохраняем
     - идем сюда через проводник: %appdata% (должен открыться путь C:\Users\USERNAME\AppData\Roaming) 
-    - Создам папку pip
+    - Создаем папку pip
     - Внутри папки pip делаем файл pip.ini
     - В файле пишем следующую конфигурацию:
         [global]
@@ -67,6 +67,7 @@ Prereq:
         pip install flask
 
 Запуск веб-сервера выглядит примерно так:
-    python "\\werde267.ca.sbrf.ru\VOL1_FolderRedirection\STD-VARM\21479579_OMEGA\Documents\parsyonok\web.py"
+    cd \\werde267.ca.sbrf.ru\VOL1_FolderRedirection\STD-VARM\21479579_OMEGA\Documents\parsyonok
+    python web.py
 
 Доступен в браузере по ссылке: http://127.0.0.1:5000
