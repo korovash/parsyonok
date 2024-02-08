@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from pathlib import Path
+import json
 
 patterns = []
 downloads_folder = ""
@@ -34,14 +35,17 @@ def get_downloads_folder():
 def parse_file(file_path, patterns):
     matched_data = []
     with open(file_path, 'r', encoding='utf-8') as file:
-        content = file.read()
-        for pattern, text, tag in patterns:
-            matches = re.finditer(pattern, content)
-            for match in matches:
-                matched_text = match.group()
-                full_line_match = content[content.rfind('\n', 0, match.start()) + 1:content.find('\n', match.start())]
-                matched_data.append((full_line_match, text, tag))
+        content = file.readlines()
+        for line in content:
+            for pattern, text, tag in patterns:
+                if re.search(pattern, line):
+                    rqUID, rqTm = extract_rqUID_and_rqTm(line)
+                    if rqUID and rqTm:
+                        matched_data.append((line, text, f'rqUID: {rqUID}, rqTm: {rqTm}', tag))
+                    else:
+                        matched_data.append((line, text, '', tag))  # Append with empty values
     return matched_data
+
 
 def copy_solution():
     selected_item = tree.selection()
@@ -100,7 +104,7 @@ def update_tree(file_path):
     # Сортировка данных по времени (первому столбцу)
     matched_data.sort(key=lambda x: x[0])
     for data in matched_data:
-        tree.insert('', 'end', values=(data[0], data[1], data[2]))
+        tree.insert('', 'end', values=(data[0], data[1], data[2], data[3]))
 
 def copy_solution():
     selected_item = tree.selection()
@@ -121,6 +125,29 @@ def copy_tag():
     root.clipboard_clear()
     root.clipboard_append(selected_data[2])  # Используем колонку "Тег"
     root.update()
+
+def extract_rqUID_and_rqTm(log_message):
+    try:
+        json_data_match = re.search(r'\{.*?\}', log_message)
+        if json_data_match:
+            json_data = json_data_match.group()
+            log_data = json.loads(json_data)
+            rqUID = log_data.get('rqUID', '')
+            rqTm = log_data.get('rqTm', '')
+            return rqUID, rqTm  # Return as a tuple
+    except (ValueError, AttributeError):
+        return '', ''
+
+    
+def add_to_summary_rqUID_Tm():
+    selected_item = tree.selection()
+    if not selected_item:
+        messagebox.showinfo('Внимание', 'Выберите строку для добавления в итоговое решение.')
+        return
+    selected_data = tree.item(selected_item, 'values')
+    rqUID_Tm = selected_data[2]
+    summary_text.insert('end', f'{rqUID_Tm} ')
+    summary_text.see('end')
 
 def main():
     
@@ -155,14 +182,15 @@ def main():
 
     # Создание таблицы
     global tree
-
-    tree = ttk.Treeview(root, columns=('Совпадения', 'Решение', 'Тег'))
+    tree = ttk.Treeview(root, columns=('Совпадения', 'Решение', 'rqUID_Tm', 'Тег'))
     tree.heading('#1', text='Совпадения', anchor='w')  
     tree.heading('#2', text='Решение', anchor='w')
-    tree.heading('#3', text='Тег', anchor='w')
-    tree.column('#1', stretch=True, minwidth=0, width=window_width // 2)
-    tree.column('#2', stretch=False, minwidth=0, width=window_width // 2)  # Растягиваем по горизонтали
-    tree.column('#3', stretch=False, minwidth=0, width=window_width // 8)  # Растягиваем по горизонтали
+    tree.heading('#3', text='rqUID_Tm', anchor='w')
+    tree.heading('#4', text='Тег', anchor='w')
+    tree.column('#1', stretch=True, minwidth=0, width=window_width // 3)
+    tree.column('#2', stretch=True, minwidth=0, width=window_width // 3)  # Растягиваем по горизонтали
+    tree.column('#3', stretch=True, minwidth=0, width=window_width // 6)  # Растягиваем по горизонтали
+    tree.column('#4', stretch=False, minwidth=0, width=window_width // 6)  # Растягиваем по горизонтали
     tree['show'] = 'headings'
     # Включение сортировки по первому столбцу
     tree.pack(fill='both', expand=True)  # Растягиваем tree по горизонтали и вертикали
@@ -171,17 +199,25 @@ def main():
     left_button_frame = tk.Frame(root)
     left_button_frame.pack(side=tk.LEFT, padx=10)
 
+    # Ширина кнопок
+    button_width = window_width // 25
     # Кнопки слева от фрейма "Итоговое решение"
-    add_recommendation_bbmo_button = ttk.Button(left_button_frame, text="Добавить рекомендацию ББМО", command=add_recommendation_bbmo)
+    add_recommendation_bbmo_button = ttk.Button(left_button_frame, text="Добавить рекомендацию ББМО", command=add_recommendation_bbmo, width=button_width)
     add_recommendation_bbmo_button.pack(side=tk.TOP, pady=5)
-    add_recommendation_restart_button = ttk.Button(left_button_frame, text="Добавить рекомендацию перезапуска", command=add_recommendation_restart)
+
+    add_recommendation_restart_button = ttk.Button(left_button_frame, text="Добавить рекомендацию перезапуска", command=add_recommendation_restart, width=button_width)
     add_recommendation_restart_button.pack(side=tk.TOP, pady=5)
-    # Создание кнопки "Добавить совпадение"
-    add_match_button = ttk.Button(left_button_frame, text="Добавить совпадение", command=add_match)
+
+    add_match_button = ttk.Button(left_button_frame, text="Добавить совпадение", command=add_match, width=button_width)
     add_match_button.pack(side=tk.TOP, pady=5)
-    add_button = ttk.Button(left_button_frame, text="Добавить в решение", command=add_to_summary)
+
+    add_button = ttk.Button(left_button_frame, text="Добавить в решение", command=add_to_summary, width=button_width)
     add_button.pack(side=tk.TOP, pady=5)
-    reload_button = ttk.Button(left_button_frame, text="Перечитать лог", command=reload_log)
+
+    add_to_summary_rqUID_Tm_button = ttk.Button(left_button_frame, text="Добавить rqUID и rqTm", command=add_to_summary_rqUID_Tm, width=button_width)
+    add_to_summary_rqUID_Tm_button.pack(side=tk.TOP, pady=5)
+
+    reload_button = ttk.Button(left_button_frame, text="Перечитать лог", command=reload_log, width=button_width)
     reload_button.pack(side=tk.TOP, pady=5)
 
     # Создание фрейма для итогового решения
@@ -203,9 +239,10 @@ def main():
     right_button_frame.pack(side=tk.RIGHT, padx=10)
 
     # Кнопки справа от фрейма "Итоговое решение"
-    copy_tag_button = ttk.Button(right_button_frame, text="Копировать ТЕГ", command=copy_tag)
+    copy_tag_button = ttk.Button(right_button_frame, text="Копировать ТЕГ", command=copy_tag, width=button_width)
     copy_tag_button.pack(side=tk.TOP, pady=5)
-    copy_solution_button = ttk.Button(right_button_frame, text="Копировать решение", command=copy_solution)
+
+    copy_solution_button = ttk.Button(right_button_frame, text="Копировать решение", command=copy_solution, width=button_width)
     copy_solution_button.pack(side=tk.TOP, pady=5)
 
     # Обновление таблицы
