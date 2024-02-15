@@ -149,6 +149,24 @@ def add_to_summary_rqUID_Tm():
     summary_text.insert('end', f'{rqUID_Tm} ')
     summary_text.see('end')
 
+def reload_patterns():
+    global patterns, compiled_patterns
+    patterns.clear()
+    compiled_patterns.clear()
+
+    # Чтение данных из файла patterns.csv
+    try:
+        with open('patterns.csv', 'r', encoding='utf-8') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            for row in csv_reader:
+                patterns.append((row[0], row[1], row[2]))
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Ошибка при чтении файла patterns.csv: {e}")
+        return
+    
+    compiled_patterns = [(re.compile(pattern), text, tag) for pattern, text, tag in patterns]
+    reload_log()
+
 def main():
     global patterns, compiled_patterns, downloads_folder
 
@@ -184,6 +202,7 @@ def main():
 
     # Создание таблицы
     global tree
+    
     tree = ttk.Treeview(root, columns=('Совпадения', 'Решение', 'rqUID_Tm', 'Тег'))
     tree.heading('#1', text='Совпадения', anchor='w')  
     tree.heading('#2', text='Решение', anchor='w')
@@ -222,6 +241,9 @@ def main():
 
     reload_button = ttk.Button(left_button_frame, text="🔄Перечитать лог", command=reload_log, width=button_width)
     reload_button.pack(side=tk.TOP, pady=5)
+
+    reload_patterns_button = ttk.Button(left_button_frame, text="🔄Перегрузить шаблоны", command=reload_patterns, width=button_width)
+    reload_patterns_button.pack(side=tk.TOP, pady=5)
 
     # Создание фрейма для итогового решения
     summary_frame = tk.Frame(root)
