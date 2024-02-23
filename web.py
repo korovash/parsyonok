@@ -1,11 +1,13 @@
-import json
-from flask import Flask, render_template, jsonify, g
+from flask import Flask, render_template, jsonify, g, request
 import re
 import csv
 import os
 import winreg
 import glob
 from pathlib import Path
+from utils import find_pattern
+import datetime
+import json
 
 app = Flask(__name__)
 
@@ -84,7 +86,23 @@ def extract_rqUid(query):
             return ''
     except Exception as e:
         return f'Произошла ошибка при извлечении rqUID и rqTm: {e}'
-
+    
+def load_log_path_from_config():
+    try:
+        with open('config.json', 'r', encoding='utf-8') as config_file:
+            config = json.load(config_file)
+            return config.get('sowanalyzer', {}).get('log_path')
+    except Exception as e:
+        print(f"Error loading log path from config: {e}")
+        return None
+    
+def get_log_directories(base_path):
+    try:
+        return [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
+    except Exception as e:
+        print(f"Error getting log directories: {e}")
+        return []
+    
 # Маршруты для проверки некоторых триггеров (открытия счета и т.д.)
 @app.route('/accOpened')
 def get_acc_opened():
@@ -144,6 +162,36 @@ def get_data():
     }
     
     return jsonify(data)
+
+@app.route('/sowanalyzer', methods=['GET', 'POST'])
+def sow_analyzer():
+    log_path = load_log_path_from_config()
+    log_directories = get_log_directories(log_path)
+
+    if request.method == 'POST':
+        start_time_str = request.form.get('start_time')
+        end_time_str = request.form.get('end_time')
+        pattern = request.form.get('pattern')
+        selected_directory = request.form.get('selected_directory')
+
+        try:
+            start_time = datetime.datetime.strptime(start_time_str, '%Y-%m-%dT%H:%M')
+            end_time = datetime.datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            error_message = 'Неверный формат даты или времени'
+            return render_template('sowanalyzer.html', error=error_message, log_directories=log_directories, selected_directory=log_path)
+
+        if not start_time_str or not end_time_str:
+            return render_template('sowanalyzer.html', error='Введите Дату начала и Дату конца', log_directories=log_directories, selected_directory=selected_directory)
+
+        if not pattern:
+            return render_template('sowanalyzer.html', error='Введите Pattern', log_directories=log_directories, selected_directory=selected_directory)
+
+        results = find_pattern(pattern, os.path.join(log_path, selected_directory), start_time, end_time)
+        
+        return render_template('sowanalyzer.html', results=results, log_directories=log_directories, selected_directory=selected_directory)
+
+    return render_template('sowanalyzer.html', results=None, log_directories=log_directories, selected_directory=log_path)
 
 if __name__ == '__main__':
     app.run(debug=True)

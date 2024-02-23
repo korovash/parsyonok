@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOWAnalyzer</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/sowanalyzer.js') }}"></script>
+</head>
+<body>
+    <h1>SOWAnalyzer</h1>
+    <div class="navbar">
+        <a href="/">Главная</a>
+        <a href="/mass_operations">Масс операции</a>
+        <a href="/sowanalyzer">SOWAnalyzer</a>
+    </div>
+    <form id="searchForm" action="/sowanalyzer" method="post">
+        <div class="form-group-horizontal">
+            <label for="start_time">Дата начала:</label>
+            <input type="datetime-local" id="start_time" name="start_time" class="form-control" value="{{ request.form['start_time'] }}">
+
+            <label for="end_time">Дата конца:</label>
+            <input type="datetime-local" id="end_time" name="end_time" class="form-control" value="{{ request.form['end_time'] }}">
+
+            <label for="path">Директория с логами:</label>
+            <select id="log_directory" name="selected_directory" class="form-control">
+                {% for directory in log_directories %}
+                    <option value="{{ directory }}" {% if directory == selected_directory %}selected{% endif %}>{{ directory }}</option>
+                {% endfor %}
+            </select>
+            <input type="hidden" name="path" value="{{ selected_directory }}">
+        </div>
+        <div class="form-group">
+            <label for="pattern">Pattern:</label>
+            <input type="text" id="pattern" name="pattern" class="form-control" value="{{ request.form['pattern'] }}">
+        </div>
+        <button type="submit" class="btn btn-primary">🔍 Поиск</button>
+        <button type="button" class="btn btn-secondary" id="exportButton">📄 Экспорт в TXT</button>
+    </form>
+
+    <table id="results-table" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Дата и время</th>
+                <th>Сообщение</th>
+                <th>Полный путь к файлу</th>
+            </tr>
+        </thead>
+        <tbody id="resultsTableBody">
+            {% if results %}
+                {% for result in results %}
+                    <tr>
+                        <td>{{ result.timestamp }}</td>
+                        <td>{{ result.message }}</td>
+                        <td>{{ result.file_path }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    <div id="owl-animation" style="display: none;">
+        <img id="owl" src="/static/img/owl.gif" alt="Owl">
+    </div>
+</body>
+</html>
