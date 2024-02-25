@@ -118,12 +118,12 @@ def index():
 def mass_operations():
     return render_template('mass_operations.html')
 
-# Маршрут для получения данных о sessionId
-@app.route('/get_session_ids')
-def get_session_ids():
-    session_ids = g.get('session_ids', [])
-    grouped_session_ids = [session_ids[i:i + 50] for i in range(0, len(session_ids), 50)]
-    return jsonify({'grouped_session_ids': grouped_session_ids})
+# # Маршрут для получения данных о sessionId
+# @app.route('/get_session_ids')
+# def get_session_ids():
+#     session_ids = g.get('session_ids', [])
+#     grouped_session_ids = [session_ids[i:i + 50] for i in range(0, len(session_ids), 50)]
+#     return jsonify({'grouped_session_ids': grouped_session_ids})
 
 @app.route('/data')
 def get_data():

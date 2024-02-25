@@ -5,64 +5,11 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Масс операции</title>
-    <style>
-        body {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            font-family: 'Arial', sans-serif;
-        }
-
-        h1 {
-            color: #3498db;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        label {
-            display: inline-block;
-            padding: 10px;
-            background-color: #3498db;
-            color: #ecf0f1;
-            cursor: pointer;
-            margin: 10px 0;
-        }
-
-        #sessionIdsList {
-            margin-top: 20px;
-        }
-
-        .navbar {
-            overflow: hidden;
-            background-color: #333;
-        }
-
-        .navbar a {
-            float: left;
-            display: block;
-            color: #f2f2f2;
-            text-align: center;
-            padding: 14px 16px;
-            text-decoration: none;
-        }
-
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
-        }
-
-        .sessionId-section {
-            margin-top: 20px;
-        }
-
-        #copyButton {
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/mass_oper.css') }}">
+    <script src="{{ url_for('static', filename='js/mass_oper.js') }}"></script>
 </head>
 <body>
-    <h1>Масс операции</h1>
+    <h1>Массовые операции</h1>
 
     <div class="navbar">
         <a href="/">Главная</a>
@@ -70,85 +17,13 @@
         <a href="/sowanalyzer">SOWAnalyzer</a>
     </div>
 
-    <label for="fileInput" onclick="resetSessionIdsList()">📂 Обзор</label>
+    <label for="fileInput">📂 Загрузка лога для извлечения сессий</label>
     <input type="file" id="fileInput" accept=".txt" onchange="handleFile()">
+    <label for="fileInputrqUID">📂 Загрузка лога для извлечения rqUID</label>
+    <input type="file" id="fileInputrqUID" accept=".txt" onchange="handleFilterqUID()">
 
-    <div id="sessionIdsList"></div>
+    <h2>Результаты</h2>
+    <div id="downloadIconContainer"></div>
 
-    <!-- Секция для отображения оборачиваемых блоков -->
-    <div class="sessionId-section">
-        <h2>Session ID Blocks</h2>
-        <div id="sessionIdContainer"></div>
-        <button id="copyButton" onclick="copyToClipboard()">Copy to Clipboard</button>
-    </div>
-
-    <script>
-        function resetSessionIdsList() {
-            document.getElementById('sessionIdsList').innerHTML = '';
-        }
-
-        function handleFile() {
-            var fileInput = document.getElementById('fileInput');
-            var file = fileInput.files[0];
-
-            if (file) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    var content = e.target.result;
-                    extractAndDisplaySessionIds(content);
-                };
-                reader.readAsText(file);
-            }
-        }
-
-        function extractAndDisplaySessionIds(content) {
-            var sessionIds = extractSessionIds(content);
-            displaySessionIds(sessionIds);
-        }
-
-        function extractSessionIds(content) {
-            var sessionIdRegex = /\bsessionId=([^;]+)/g;
-            var matches = content.match(sessionIdRegex);
-            return matches ? matches.map(match => match.split('=')[1].trim()) : [];
-        }
-
-        function displaySessionIds(sessionIds) {
-            var sessionIdsList = document.getElementById('sessionIdsList');
-            uniquesessionIds = new Set(sessionIds);
-            uniquesessionIds.forEach(function (sessionId) {
-                var sessionIdElement = document.createElement('div');
-                sessionIdElement.innerText = sessionId;
-                sessionIdsList.appendChild(sessionIdElement);
-            });
-        }
-        
-        function createBlockHtml(sessionIds) {
-            uniquesessionIds = new Set(sessionIds);
-            return `<div class="sessionId-block">AND (${uniquesessionIds.map(id => `"${id}"`).join(' OR ')})</div>`;
-        }
-
-        // Функция для обновления блоков на странице
-        function updateBlocks(sessionIdBlocks) {
-            var sessionIdContainer = document.getElementById('sessionIdContainer');
-            sessionIdContainer.innerHTML = ''; // Очищаем контейнер
-
-            for (var i = 0; i < sessionIdBlocks.length; i++) {
-                var block = sessionIdBlocks[i];
-                var blockDiv = document.createElement('div');
-                blockDiv.textContent = JSON.stringify(block);
-                sessionIdContainer.appendChild(blockDiv);
-            }
-        }
-
-        // Получение оборачиваемых блоков при загрузке страницы
-        window.onload = function() {
-            fetch('/get_session_ids')
-                .then(response => response.json())
-                .then(data => {
-                    updateBlocks(data.grouped_session_ids);
-                })
-                .catch(error => console.error('Error fetching session ids:', error));
-        };
-    </script>
 </body>
 </html>
