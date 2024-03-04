@@ -45,9 +45,8 @@ def find_pattern(pattern, path, start_time, end_time):
         if filename.endswith('.log') or filename.endswith('.gz'):
             full_path = os.path.join(path, filename)
             if filename.endswith('.gz'):
-                with gzip.open(full_path, 'rb') as f_in:
-                    with codecs.open(f_in, 'r', 'utf-8', errors='replace') as f:
-                        file_content = f.read()
+                with gzip.open(full_path, 'rt', 'utf-8', errors='replace') as f:
+                    file_content = f.read()
             else:
                 with codecs.open(full_path, 'r', 'utf-8', errors='replace') as f:
                     file_content = f.read()
