@@ -2,6 +2,7 @@ import gzip
 import os
 import codecs
 import datetime
+import concurrent.futures
 
 def get_timestamp(line):
 
@@ -58,5 +59,23 @@ def find_pattern(pattern, path, start_time, end_time):
                 if pattern in line:
                     timestamp = get_timestamp(line)
                     matches.append({'timestamp': timestamp, 'message': line, 'file_path': full_path})
+
+    return matches
+
+def find_pattern_concurrent(pattern, path, start_time, end_time):
+    matches = []
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Запускаем find_pattern в нескольких потоках
+        futures = {executor.submit(find_pattern, pattern, path, start_time, end_time): filename for filename in os.listdir(path)}
+        
+        # Собираем результаты
+        for future in concurrent.futures.as_completed(futures):
+            filename = futures[future]
+            try:
+                result = future.result()
+                matches.extend(result)
+            except Exception as e:
+                print(f"Error processing file {filename}: {e}")
 
     return matches

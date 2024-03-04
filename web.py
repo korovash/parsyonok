@@ -1,11 +1,11 @@
-from flask import Flask, render_template, jsonify, g, request
+from flask import Flask, render_template, jsonify, request
 import re
 import csv
 import os
 import winreg
 import glob
 from pathlib import Path
-from utils import find_pattern
+from utils import find_pattern_concurrent
 import datetime
 import json
 
@@ -103,6 +103,7 @@ def get_log_directories(base_path):
         print(f"Error getting log directories: {e}")
         return []
     
+    
 # Маршруты для проверки некоторых триггеров (открытия счета и т.д.)
 @app.route('/accOpened')
 def get_acc_opened():
@@ -117,13 +118,6 @@ def index():
 @app.route('/mass_operations')
 def mass_operations():
     return render_template('mass_operations.html')
-
-# # Маршрут для получения данных о sessionId
-# @app.route('/get_session_ids')
-# def get_session_ids():
-#     session_ids = g.get('session_ids', [])
-#     grouped_session_ids = [session_ids[i:i + 50] for i in range(0, len(session_ids), 50)]
-#     return jsonify({'grouped_session_ids': grouped_session_ids})
 
 @app.route('/data')
 def get_data():
@@ -187,7 +181,7 @@ def sow_analyzer():
         if not pattern:
             return render_template('sowanalyzer.html', error='Введите Pattern', log_directories=log_directories, selected_directory=selected_directory)
 
-        results = find_pattern(pattern, os.path.join(log_path, selected_directory), start_time, end_time)
+        results = find_pattern_concurrent(pattern, os.path.join(log_path, selected_directory), start_time, end_time)
         
         return render_template('sowanalyzer.html', results=results, log_directories=log_directories, selected_directory=selected_directory)
 
